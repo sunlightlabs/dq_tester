@@ -138,7 +138,6 @@ def parse_obligation(program, ob_str):
 def parse_budget_account(program, account_text):
     matches = account.findall(account_text)
     for match in matches:
-        print match
         agency_code = int(match[0:2])
         account_symbol = int(match[3:7])
         transmittal_code = int(match[8])
@@ -147,10 +146,11 @@ def parse_budget_account(program, account_text):
         ba = BudgetAccount(code=match, agency_code=agency_code, fund_code=fund_code, subfunction_code=subfunction_code, transmittal_code=transmittal_code, account_symbol=account_symbol)
         
         already_in = False
-        for acc in program.budget_accounts:
-            if match == acc['code']:
-                already_in = True
-                break
+        if program.budget_accounts:
+            for acc in program.budget_accounts:
+                if match == acc['code']:
+                    already_in = True
+                    break
 
         if not already_in:
             if not program.budget_accounts:
@@ -180,11 +180,21 @@ def parse_cfda_line(row):
     parse_obligation(program, obligations_text)
     parse_budget_account(program, account_text)
     get_agency(program, program_number)
-#    for i in program.__dict__.keys():
-#        print "%s : %s" % (i, program.__dict__[i])
     program.run = VERSION
     program.save()
 
+def parse_subagencies(line):
+    program_num = smart_unicode(line[0], errors='ignore')
+    office = smart_unicode(line[2], errors='ignore')
+    if office.find('/') > -1:
+        try:
+            program = Program.objects.get(number=program_num)
+        except:
+            print "Program %s not found!" % program_num
+            return 
+        program.subagency = Subagency(name=office.split("/")[1].lower())
+        program.save()
+                
 def load_cfda(file_name):
     try:
         reader = csv.reader(open(file_name))
@@ -204,5 +214,9 @@ def load_cfda(file_name):
     for row in reader:
         parse_cfda_line(row)
 
+    reader_sa = csv.reader(open("%s/data/cfda_programs_by_agency_subagency.csv" % PROJECT_ROOT))
+    reader_sa.next()
+    for line in reader_sa:
+        parse_subagencies(line)
 
 
