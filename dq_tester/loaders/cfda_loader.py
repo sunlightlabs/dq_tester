@@ -1,4 +1,5 @@
 from cfda.models import *
+from agency.models import Agency as ExtAgency
 from settings import PROJECT_ROOT
 from django.utils.encoding import smart_unicode
 from mongoengine.base import ValidationError
@@ -134,6 +135,35 @@ def parse_obligation(program, ob_str):
 
         program.save()
 
+def parse_budget_account(program, account_text):
+    matches = account.findall(account_text)
+    for match in matches:
+        print match
+        agency_code = int(match[0:2])
+        account_symbol = int(match[3:7])
+        transmittal_code = int(match[8])
+        fund_code = int(match[10])
+        subfunction_code = int(match[12:])
+        ba = BudgetAccount(code=match, agency_code=agency_code, fund_code=fund_code, subfunction_code=subfunction_code, transmittal_code=transmittal_code, account_symbol=account_symbol)
+        
+        already_in = False
+        for acc in program.budget_accounts:
+            if match == acc['code']:
+                already_in = True
+                break
+
+        if not already_in:
+            if not program.budget_accounts:
+                program.budget_accounts = [ba]
+            else:
+                program.budget_accounts.append(ba)
+
+def get_agency(program, program_number):
+    agency = ExtAgency.objects.get(cfda_code=program_number[:2])
+    if not program.agency:
+        a = Agency(cfda_code=agency.cfda_code, treasury_code=agency.treasury_code, name=agency.name)
+        program.agency = a
+        program.save()
 
 def parse_cfda_line(row):
 
@@ -148,7 +178,8 @@ def parse_cfda_line(row):
     program.title = program_title
     parse_assistance(program, assistance_type)
     parse_obligation(program, obligations_text)
-
+    parse_budget_account(program, account_text)
+    get_agency(program, program_number)
 #    for i in program.__dict__.keys():
 #        print "%s : %s" % (i, program.__dict__[i])
     program.run = VERSION

@@ -35,7 +35,7 @@ class BudgetAccount(EmbeddedDocument):
     subfunction_code = IntField()
     transmittal_code = IntField()
     account_symbol = IntField()
-    
+    agency_code = IntField()
 
 class Subagency(EmbeddedDocument):
     name = StringField()
@@ -45,8 +45,8 @@ class Subagency(EmbeddedDocument):
     outlays = ListField(DictField())
 
 class Agency(EmbeddedDocument):
-    cfda_code = IntField()
-    treasury_code = IntField()
+    cfda_code = StringField()
+    treasury_code = StringField()
     subagency = ListField(EmbeddedDocumentField(Subagency))
     name = StringField()
     budget_numbers = ListField(EmbeddedDocumentField(BudgetNumber))
@@ -61,9 +61,13 @@ class Program(Document):
     title = StringField()
     description = StringField()
     obligations = ListField(EmbeddedDocumentField(Obligation))
+    budget_accounts = ListField(EmbeddedDocumentField(BudgetAccount))
+    agency = EmbeddedDocumentField(Agency)
+    subagency = EmbeddedDocumentField(Subagency)
     assistance_types = ListField(IntField())
     average_assist = IntField()
     range_assist = ListField(IntField())
     run = StringField()
     
   
+
