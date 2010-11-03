@@ -97,7 +97,7 @@ def parse_obligation(program, ob_str):
     if type_matches:
         curr_type = type_iter.next()
     for pair in matches:
-        year = '20' + pair[0]
+        year = int('20' + pair[0])
         if year < curr_year:  #if the year sequence has started over, move to the next type
             try:
                 curr_type = type_iter.next()
@@ -122,17 +122,29 @@ def parse_obligation(program, ob_str):
         
         obligation = Obligation(fiscal_year=year, amount=obligation, assistance_type=ob_type)
         # check to see if this obligation exists
-        if program.obligations and obligation in program.obligations:
-            if program.run < VERSION:
-                program.obligations.get(fiscal_year=year, assistance_type=ob_type).amount=obligation
+        if program.obligations:
+    
+            already_in = False
+            current_ob = None
+    
+            for o in program.obligations:
+                if o['fiscal_year'] == year and o['assistance_type'] == ob_type: 
+                    already_in = True
+                    current_ob = o
+                    break
+
+            if already_in:
+                if program.run < VERSION:
+                    current_ob.amount = obligation.amount
+                    program.save()
+            else:
+                program.obligations.append(obligation)
                 program.save()
-        elif not program.obligations:
+
+        else:
             program.obligations = [obligation]
             program.save()
-        else:
-            program.obligations.append(obligation)
-            program.save()
-
+        
         program.save()
 
 def parse_budget_account(program, account_text):

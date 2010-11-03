@@ -1,4 +1,4 @@
-from mongoengine import connect, Document, EmbeddedDocument, EmbeddedDocumentField, StringField, IntField, ListField, DictField, ObjectIdField
+from mongoengine import connect, Document, EmbeddedDocument, EmbeddedDocumentField, StringField, IntField, ListField, DictField, ObjectIdField, FloatField
 from settings import DATABASE_NAME
 import re
 connect(DATABASE_NAME)
@@ -54,6 +54,9 @@ class Agency(EmbeddedDocument):
 class Obligation(EmbeddedDocument):
     fiscal_year = IntField(required=True)
     amount = IntField()
+    usaspending_amount = IntField()
+    delta = IntField()
+    weighted_delta = FloatField()
     assistance_type = IntField()
 
 class Program(Document):
