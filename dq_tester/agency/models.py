@@ -24,7 +24,7 @@ class Agency(Document):
 
 
 AGENCY_MAP = {'10': ('12', 'Department of Agriculture'), 
-              '11': ('13,' 'Department of Commerce'), 
+              '11': ('13', 'Department of Commerce'), 
               '12': ('97', 'Department of Defense'), 
               '14': ('86', 'Department of Housing and Urban Development'), 
               '15': ('14', 'Department of the Interior'), 

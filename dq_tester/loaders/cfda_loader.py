@@ -1,8 +1,8 @@
-from cfda.models import *
-from agency.models import Agency as ExtAgency
-from settings import PROJECT_ROOT
+from settings import PROJECT_ROOT, DB_NAME
+from cfda.models import ASSIST_OPTIONS
 from django.utils.encoding import smart_unicode
-from mongoengine.base import ValidationError
+#from mongoengine.base import ValidationError
+from pymongo import Connection
 import csv
 import re
 
@@ -27,42 +27,49 @@ ob_assist_list = (
  
 VERSION = ''
 
-def get_or_create_program(number):
-    prog = Program.objects(number=number)
+def get_or_create_program(number, db):
+    prog = db.cfda.find_one({"number": number})
     if prog:
-        return prog[0]
+        return prog
     else:
-        return Program(number=number)
+        return { "number" : number }
+
+def get_or_set_attr(obj, key, default=None):
+    if obj.has_key(key):
+        return obj
+    else:
+        obj[key] = default
+        return obj
 
 def match_ob_type_with_assistance(program, text):
     global ob_assist_list
     for re in ob_assist_list:
         if re[0].findall(text):
-            for at in program.assistance_types:
+            program = get_or_set_attr(program, "assistance_types", [])
+            for at in program["assistance_types"]:
                 if at in re[1]:
                     return at
 
 
-def add_assistance_type(program, code):
-    if not program.assistance_types:
-        program.assistance_types = [code]
-    elif code not in program.assistance_types:    
-        program.assistance_types.append(code)
-    program.save()
+def add_assistance_type(program, code, db):
+    program = get_or_set_attr(program, "assistance_types", [])
+    if code not in program["assistance_types"]:    
+        program["assistance_types"].append(code)
+    db['cfda'].save(program)
 
-def match_assistance(program, text):
+def match_assistance(text):
     for type_tuple in ASSIST_OPTIONS:
         if text == type_tuple[1].lower() or type_tuple[2].findall(text):
             return type_tuple[0]
 
-def parse_assistance(program, text):
+def parse_assistance(program, text, db):
     try:
         asst_types = smart_unicode(text).strip('.').split(';')
         for asst in asst_types:
             clean_asst = asst.lower().strip().replace("\n", "")
-            code = match_assistance(program, clean_asst)
+            code = match_assistance(clean_asst)
             if code:
-                add_assistance_type(program, code)
+                add_assistance_type(program, code, db)
             else:
                 print "Assistance type didn't match for %s from program %s" % (text, program.title)
         
@@ -78,13 +85,13 @@ def parse_assistance(program, text):
 
 def is_financial(program):
     financial = False
-    if program.assistance_types:
-        for at in program.assistance_types:
-            if at in [1, 2, 3, 4, 5, 6, 7, 8]:
-                return True
+    program = get_or_set_attr(program, "assistance_types", [])
+    for at in program["assistance_types"]:
+        if at in [1, 2, 3, 4, 5, 6, 7, 8]:
+            return True
     return False
 
-def parse_obligation(program, ob_str):
+def parse_obligation(program, ob_str, db):
     
     matches = re_funding.findall(ob_str)
     type_matches = re_funding_type.findall(ob_str)
@@ -110,7 +117,7 @@ def parse_obligation(program, ob_str):
             continue  #leave out salaries and nonassistance stuff
         if curr_type:
             curr_type = curr_type.lower()
-            assist_code = match_assistance(program, curr_type)
+            assist_code = match_assistance(curr_type)
             if not assist_code:
                 assist_code = match_ob_type_with_assistance(program, curr_type) # try and match with an assistance type already defined for this program
             if assist_code: ob_type = assist_code
@@ -120,64 +127,56 @@ def parse_obligation(program, ob_str):
             except Exception:
                 ob_type = 1  # grants is always our default
         
-        obligation = Obligation(fiscal_year=year, amount=obligation, assistance_type=ob_type)
-        # check to see if this obligation exists
-        if program.obligations:
-    
-            already_in = False
-            current_ob = None
-    
-            for o in program.obligations:
-                if o['fiscal_year'] == year and o['assistance_type'] == ob_type: 
-                    already_in = True
-                    current_ob = o
-                    break
+        obligation = { "fiscal_year" : year, "amount" : obligation, "assistance_type" : ob_type}
+        #check if this obligation exists
+        program = get_or_set_attr(program, "obligations", [])
+        already_in = False
+        current_ob = None
 
-            if already_in:
-                if program.run < VERSION:
-                    current_ob.amount = obligation.amount
-                    program.save()
-            else:
-                program.obligations.append(obligation)
-                program.save()
+        for o in program["obligations"]:
+            if o['fiscal_year'] == year and o['assistance_type'] == ob_type: 
+                already_in = True
+                current_ob = o
+                break
 
+        if already_in:
+            if program.has_key("run") and program["run"] < VERSION:
+                current_ob["amount"] = obligation["amount"]
+                db['cfda'].save(program)
         else:
-            program.obligations = [obligation]
-            program.save()
+            program["obligations"].append(obligation)
+            db['cfda'].save(program)
         
-        program.save()
+        db['cfda'].save(program)
 
 def parse_budget_account(program, account_text):
     matches = account.findall(account_text)
     for match in matches:
-        agency_code = int(match[0:2])
-        account_symbol = int(match[3:7])
-        transmittal_code = int(match[8])
-        fund_code = int(match[10])
-        subfunction_code = int(match[12:])
-        ba = BudgetAccount(code=match, agency_code=agency_code, fund_code=fund_code, subfunction_code=subfunction_code, transmittal_code=transmittal_code, account_symbol=account_symbol)
+        agency_code = match[0:2]
+        account_symbol = match[3:7]
+        transmittal_code = match[8]
+        fund_code = match[10]
+        subfunction_code = match[12:]
+        ba = { "code": match, "agency_code" : agency_code, "fund_code" : fund_code, "subfunction_code" : subfunction_code, "transmittal_code" : transmittal_code, "account_symbol" : account_symbol}
         
         already_in = False
-        if program.budget_accounts:
-            for acc in program.budget_accounts:
-                if match == acc['code']:
-                    already_in = True
-                    break
+        program = get_or_set_attr(program, "budget_accounts", [])
+        for acc in program["budget_accounts"]:
+            if match == acc['code']:
+                already_in = True
+                break
 
         if not already_in:
-            if not program.budget_accounts:
-                program.budget_accounts = [ba]
-            else:
-                program.budget_accounts.append(ba)
+            program["budget_accounts"].append(ba)
 
-def get_agency(program, program_number):
-    agency = ExtAgency.objects.get(cfda_code=program_number[:2])
-    if not program.agency:
-        a = Agency(cfda_code=agency.cfda_code, treasury_code=agency.treasury_code, name=agency.name)
-        program.agency = a
-        program.save()
+def get_agency(program, program_number, db):
+    agency = db['agencies'].find_one({"cfda_code" : program_number[:2]})
+    if agency:
+        a = {"cfda_code": agency["cfda_code"], "treasury_code": agency["treasury_code"], "name" : agency["name"]}
+        program["agency"] = a
+        db["cfda"].save(program)
 
-def parse_cfda_line(row):
+def parse_cfda_line(row, db):
 
     program_title = smart_unicode(row[0], errors='ignore')
     program_number = smart_unicode(row[1], errors='ignore')
@@ -186,26 +185,47 @@ def parse_cfda_line(row):
     account_text = smart_unicode(row[23], errors='ignore')
     range_text = smart_unicode(row[25], errors='ignore')
 
-    program  = get_or_create_program(program_number.strip())
-    program.title = program_title
-    parse_assistance(program, assistance_type)
-    parse_obligation(program, obligations_text)
+    program  = get_or_create_program(program_number.strip(), db)
+    program["title"] = program_title
+    parse_assistance(program, assistance_type, db)
+    parse_obligation(program, obligations_text, db)
     parse_budget_account(program, account_text)
-    get_agency(program, program_number)
-    program.run = VERSION
-    program.save()
+    get_agency(program, program_number, db)
+    program["run"] = VERSION
+    db['cfda'].save(program)
 
-def parse_subagencies(line):
+def get_or_create_subagency(name, agency, db):
+    sa = db['subagency'].find_one({"name" : name})
+    if sa:
+        return sa
+    else:
+        sa = { "name": name, "agency" : agency }
+        db['subagency'].save(sa)
+        return sa
+
+def parse_subagencies(line, db):
     program_num = smart_unicode(line[0], errors='ignore')
     office = smart_unicode(line[2], errors='ignore')
     if office.find('/') > -1:
-        try:
-            program = Program.objects.get(number=program_num)
-        except:
+        program = db['cfda'].find_one({ "number" : program_num})
+        if not program:
             print "Program %s not found!" % program_num
-            return 
-        program.subagency = Subagency(name=office.split("/")[1].lower())
-        program.save()
+            return  
+        name = office.split("/")[1].strip()
+        sa = db["subagency"].find_one({ "name" : name })
+        if sa:
+            program["subagency"] = sa        
+        else:
+            if program.has_key("agency"):
+                sa = get_or_create_subagency(name, program["agency"], db)
+            else:
+                agency = db['agency'].find_one({"name": office.split("/")[0].strip() })
+                if agency:
+                    sa = get_or_create_subagency(name, agency, db)
+                else:
+                    pass
+                    #log  to error file
+        db['cfda'].save(program)
                 
 def load_cfda(file_name):
     try:
@@ -222,13 +242,16 @@ def load_cfda(file_name):
         return
     global VERSION
     VERSION = file_name[-9:-4]
+    conn = Connection()
+    db = conn[DB_NAME]
     reader.next()
     for row in reader:
-        parse_cfda_line(row)
+        parse_cfda_line(row, db)
 
     reader_sa = csv.reader(open("%s/data/cfda_programs_by_agency_subagency.csv" % PROJECT_ROOT))
     reader_sa.next()
     for line in reader_sa:
-        parse_subagencies(line)
+        parse_subagencies(line, db)
 
+    db['cfda'].ensure_index("program_number", unique=True)
 

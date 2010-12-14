@@ -1,4 +1,4 @@
-from mongoengine import connect, Document, EmbeddedDocument, EmbeddedDocumentField, StringField, IntField, ListField, DictField, ObjectIdField, FloatField
+from mongoengine import connect, Document, EmbeddedDocument, EmbeddedDocumentField, StringField, IntField, ListField, DictField, ObjectIdField, FloatField, BooleanField
 from settings import DATABASE_NAME
 import re
 connect(DATABASE_NAME)
@@ -58,6 +58,7 @@ class Obligation(EmbeddedDocument):
     delta = IntField()
     weighted_delta = FloatField()
     assistance_type = IntField()
+    #flag_year = BooleanField()  #flag for year over year failure
 
 class Program(Document):
     number = StringField(required=True, unique=True)

@@ -47,7 +47,7 @@ def load_usaspending():
                     #print "MATCH: %s - %s - %s - %s diff %s" % (row[0], row[1], cfda_ob.obligation, cfda_ob.usaspending_obligation, cfda_ob.delta)
 
         except DoesNotExist, e:
-            print "Program does not exist, %s, %s " % (e, row[0])
+            print row[0]
 
     cursor.close()
     conn.close()
