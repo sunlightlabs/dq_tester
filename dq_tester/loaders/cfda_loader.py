@@ -16,6 +16,16 @@ re_loan = re.compile('[lL]oan')
 re_guar = re.compile('[gG]uarantee')
 re_insur = re.compile('[iI]nsur|indemniti')
 account = re.compile('[\d]{2}[-][\d]{4}[-][\d]{1}[-][\d]{1}[-][\d]{3}')
+range_re = re.compile('((?:(?:FY\s?(\d{2,4})).*?)?' + \
+                       '(?:([lL]oan|[gG]rant).*?)?' + \
+                       '(?:\$?\s?((?:\d+(?:,|\.\d+)*(?:\s?(?:M|K|[M|m]illion))*)+)' + \
+                           '(?:(?: to )|(?:\s*\-\s*))' + \
+                          '\$?\s?((?:\d+(?:,|\.\d+)*(?:\s?(?:M|K|[M|m]illion))*)+))' + \
+                        '|(?:[U|u]p to .*?(?:\$?\s?((?:\d+(?:,|\.\d+)*(?:\s?(?:M|K|[M|m]illion))*)+)))' + \
+                        '|(?:(?:\$?\s?((?:\d+(?:,|\.\d+)*(?:\s?(?:M|K|[M|m]illion))*)+)) and up))')
+
+number_text = re.compile('[mM]illion|M|K')
+year_text = re.compile('\d{4}')
 
 ob_assist_list = ( 
                     (re_direct, (3, 4, 7)),
@@ -111,7 +121,7 @@ def parse_obligation(program, ob_str, db):
             except StopIteration:
                 pass      #no more types
         curr_year = year
-        obligation = pair[2].replace(",", "")
+        obligation = int(pair[2].replace(",", ""))
 
         if (curr_type and re_exclude.findall(curr_type)) or not is_financial(program):
             continue  #leave out salaries and nonassistance stuff
@@ -169,6 +179,71 @@ def parse_budget_account(program, account_text):
         if not already_in:
             program["budget_accounts"].append(ba)
 
+
+def convert_text_to_number(text):
+    if re.findall('\d{4}', text):
+        number = None
+    elif re.findall('[mM]illion|M', text):
+        number = float(text.strip().lower().replace(' ', '').replace(',', '').replace('million', '').replace('m', '')) * 1000000
+    elif re.findall('K|k', text):
+        number = float(text.strip().lower().replace(' ', '').replace(',', '').replace('k', '').replace('thousand', '')) * 1000
+    elif re.findall('\.\d{3}', text):
+        number = float(text.strip().lower().replace(' ', '').replace(',', '').replace('.', ''))  #typo, period should be comma
+    elif re.findall('\.\d{1}', text):
+        number = None  #invalid if not shorthand and not cents
+    else:
+        number = float(text.strip().lower().replace(' ', '').replace(',', ''))
+    return number
+
+def parse_obligation_range(program, text, db):
+    matches = range_re.findall(text)
+    for m in matches:
+        #assign groups to respective vars
+        full_match, fiscal_year, spending_type, range_low, range_high, max_range, min_range = m
+        if (range_low and range_high) or max_range or min_range:
+            #we have usable(maybe) data
+            range_data = {}
+            if fiscal_year:
+                range_data['fiscal_year'] = fiscal_year
+            else:
+                range_data['fiscal_year'] = 'no_year'
+            if spending_type:
+                range_data['type'] = spending_type.strip()
+            if max_range:
+                range_data['low'] = 0
+                range_data['high'] = convert_text_to_number(max_range)
+                if not range_data['high']: continue
+            elif min_range:
+                range_data['low'] = convert_text_to_number(min_range)
+                range_data['high'] = 'no max'
+                if not range_data['low']: continue
+            elif range_low and range_high:
+                range_low = convert_text_to_number(range_low)
+                range_high = convert_text_to_number(range_high)
+                if range_low and range_high:
+                    range_data['low'] = range_low
+                    range_data['high'] = range_high
+                else:
+                    continue
+            else:
+                continue
+
+            #parse out the average somewhere
+            if program.has_key('range_of_assistance'):
+                for r in program['range_of_assistance']:
+                    if r['fiscal_year'] == range_data['fiscal_year']:
+                        program['range_of_assistance'].remove(r)
+                        program['range_of_assistance'].append(range_data)
+                        db['cfda'].save(program)
+                        return
+                program['range_of_assistance'].append(range_data)
+            else:
+                program['range_of_assistance'] = [range_data]
+            
+              # print m
+
+#    db['cfda'].save(program)
+
 def get_agency(program, program_number, db):
     agency = db['agencies'].find_one({"cfda_code" : program_number[:2]})
     if agency:
@@ -184,13 +259,17 @@ def parse_cfda_line(row, db):
     obligations_text = smart_unicode(row[24], errors='ignore')
     account_text = smart_unicode(row[23], errors='ignore')
     range_text = smart_unicode(row[25], errors='ignore')
-
+    recovery = smart_unicode(row[37], errors='ignore')
     program  = get_or_create_program(program_number.strip(), db)
     program["title"] = program_title
     parse_assistance(program, assistance_type, db)
     parse_obligation(program, obligations_text, db)
     parse_budget_account(program, account_text)
+    parse_obligation_range(program, range_text, db)
+
     get_agency(program, program_number, db)
+    if recovery.strip().lower() == 'yes':
+        program['recovery'] = True
     program["run"] = VERSION
     db['cfda'].save(program)
 
