@@ -1,4 +1,4 @@
-from settings import PROJECT_ROOT, DB_NAME
+from settings import PROJECT_ROOT, DATABASE_NAME
 from cfda.models import ASSIST_OPTIONS
 from django.utils.encoding import smart_unicode
 #from mongoengine.base import ValidationError
@@ -36,6 +36,7 @@ ob_assist_list = (
                 )
  
 VERSION = ''
+logwriter = open("logs/cfda_import.log", 'a')
 
 def get_or_create_program(number, db):
     prog = db.cfda.find_one({"number": number})
@@ -221,6 +222,9 @@ def parse_obligation_range(program, text, db):
                 range_low = convert_text_to_number(range_low)
                 range_high = convert_text_to_number(range_high)
                 if range_low and range_high:
+                    if range_low < 100 and range_high < 100:
+                        logwriter.write("Possible range mistake. Program: %s\tRange Match:%s\n" % (program['number'], full_match))
+                        continue
                     range_data['low'] = range_low
                     range_data['high'] = range_high
                 else:
@@ -229,6 +233,7 @@ def parse_obligation_range(program, text, db):
                 continue
 
             #parse out the average somewhere
+
             if program.has_key('range_of_assistance'):
                 for r in program['range_of_assistance']:
                     if r['fiscal_year'] == range_data['fiscal_year']:
@@ -241,15 +246,15 @@ def parse_obligation_range(program, text, db):
                 program['range_of_assistance'] = [range_data]
             
               # print m
-
-#    db['cfda'].save(program)
+    db['cfda'].save(program)
 
 def get_agency(program, program_number, db):
-    agency = db['agencies'].find_one({"cfda_code" : program_number[:2]})
+    agency = db['agency'].find_one({"cfda_code" : program_number[:2]})
     if agency:
         a = {"cfda_code": agency["cfda_code"], "treasury_code": agency["treasury_code"], "name" : agency["name"]}
         program["agency"] = a
         db["cfda"].save(program)
+
 
 def parse_cfda_line(row, db):
 
@@ -270,6 +275,8 @@ def parse_cfda_line(row, db):
     get_agency(program, program_number, db)
     if recovery.strip().lower() == 'yes':
         program['recovery'] = True
+    else:
+        program['recovery'] = False
     program["run"] = VERSION
     db['cfda'].save(program)
 
@@ -322,7 +329,7 @@ def load_cfda(file_name):
     global VERSION
     VERSION = file_name[-9:-4]
     conn = Connection()
-    db = conn[DB_NAME]
+    db = conn[DATABASE_NAME]
     reader.next()
     for row in reader:
         parse_cfda_line(row, db)

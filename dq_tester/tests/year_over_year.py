@@ -1,5 +1,5 @@
 from pymongo import Connection
-from settings import DB_NAME
+from settings import DATABASE_NAME
 from tests_util import *
 
 def year_over_year(db):
@@ -25,18 +25,25 @@ def year_over_year(db):
                             denom = grants[count + 1]['amount']
                     else:
                         denom = o['amount']
+                    
+                    test_object = {}
+                    
+
                     if float(diff) / denom > .5 or float(diff) / denom < -.5:
-                        test_object = {}
-
-                        #add data to test object
                         test_object['result'] = 'fail'
-                        test_object['fiscal_year'] = o['fiscal_year']
-                        test_object['first_year'] = o['fiscal_year']
-                        test_object['second_year'] = grants[count + 1]['fiscal_year']
-                        test_object['percent_change'] = float(diff) / denom
+                    else: 
+                        test_object['result'] = 'success'
+                    #add data to test object
+                    if p['recovery']:
+                        test_object['result'] = 'warn'
 
-                        p = add_test_result(p, 'year_over_year', test_object, 'fiscal_year', o['fiscal_year'])
-                        db['cfda'].save(p)
+                    test_object['fiscal_year'] = o['fiscal_year']
+                    test_object['first_year'] = o['fiscal_year']
+                    test_object['second_year'] = grants[count + 1]['fiscal_year']
+                    test_object['percent_change'] = float(diff) / denom
+
+                    p = add_test_result(p, 'year_over_year', test_object, 'fiscal_year', test_object['fiscal_year'])
+                    db['cfda'].save(p)
                 
                 #    print "%s\t%s\t%s\t%s\t%s\t%s\t%s" % (p.number, p.title, o.fiscal_year, o.amount, grants[count + 1].fiscal_year, grants[count + 1].amount, diff)
 
@@ -46,5 +53,5 @@ def year_over_year(db):
 
 if __name__ == "__main__":
     conn = Connection()
-    db = conn[DB_NAME]
+    db = conn[DATABASE_NAME]
     year_over_year(db) 
