@@ -29,6 +29,7 @@
           padding: 20px 30px;
             clear: both;
     }
+    div.main h4 { font-size: 22px; font-weight:bold; margin: 15px 10px; }
 
     div.footer {
           margin-top: 20px;
@@ -73,9 +74,11 @@
     /* Search results page */
 
     h3.results {margin-top: 0px;}
-
-    table.results {width: 100%}
-    table.results td {padding: 4px 10px;}
+    
+    table.results {width: 100%; margin: 10px;}
+    table.results th { font-weight: bold; } 
+    table.results td {padding: 15px 0px; vertical-align: top; min-width: 150px;}
+    table.results td.name { width: 300px; }
     table.results td a {text-decoration: underline;}
 
     span.no_positions {color: #666;}
@@ -145,3 +148,9 @@
             margin-left: 5px;
               color: #662222;
     }
+
+    /* table sort */
+    table.results th { background: url(/media/i/sortArrows.png) no-repeat scroll left 10px transparent; padding-left: 15px; padding-top: 4px; cursor:pointer; }
+
+    table.results th.headerSortDown { background: url(/media/i/sortArrows_down.png) no-repeat scroll left 10px transparent; }
+    table.results th.headerSortUp { background: url(/media/i/sortArrows_up.png) no-repeat scroll left 10px transparent; }

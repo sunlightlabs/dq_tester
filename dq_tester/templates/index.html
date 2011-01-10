@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="main">
 
-<table>
-<tr><th>Agency</th><th>failed</th><th>warned</th><th>success</th></tr>
+<table class="results">
+<thead>
+<tr><th>Agency</th><th>failed</th><th>warned</th><th>success</th><th>Test Could not be Performed</th><th> Total Programs</th></tr>
+</thead>
+<tbody>
 {% for a in agencies %}
-<tr><td>{{a.name}}</td><td>{{a.failed_total}}</td><td>{{a.warned_total}}</td><td>{{a.success_total}}</td></tr>
+<tr><td><a href="/agency/{{a.cfda_code}}">{{a.name}}</a></td><td>{{a.failed_total}}</td><td>{{a.warned_total}}</td><td>{{a.success_total}}</td><td>{{a.notest_total}}</td><td>{{a.program_total}}</td></tr>
 {%endfor%}
+</tbody>
 </table>
 
-</div>
 {% endblock %}
 
 

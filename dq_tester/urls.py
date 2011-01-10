@@ -7,6 +7,8 @@ from django.conf import settings
 
 urlpatterns = patterns('',
     url(r'^$', 'cfda.views.index', name='index'),
+    url(r'^agency/(?P<cfda_id>\d{2})', 'agency.views.agency' ),
+    url(r'^program/(?P<number>\d{2}\.\d{3})', 'cfda.views.cfda' ),
     # Example:
     # (r'^dq_tester/', include('dq_tester.foo.urls')),
 

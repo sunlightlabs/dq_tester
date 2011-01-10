@@ -1,0 +1,28 @@
+{% extends "base.html"%}
+{% load humanize %}
+{% block content %}
+<h4>Programs for {{agency.name}}</h4>
+<table class="results">
+    <thead>
+    <tr><th>Program</th><th>Number</th><th>Obligations</th><th>Tests Failed</th><th>Tests Warned</th><th>Test Successes</th><th>Tested?</th></tr>
+    </thead>
+    <tbody>
+    {% for p in programs %}
+    <tr>
+        <td class="name"><a href="/program/{{p.number}}">{{p.title}}</a></td>
+        <td>{{p.number}}</td>
+        <td>
+            {% for o in p.obligations %}
+                {{o.fiscal_year}}: ${{o.amount|intcomma}} ({{o.assistance_type}})<br />
+            {% endfor %}
+        </td>
+        <td>{{p.failed_total}}</td>
+        <td>{{p.warned_total}}</td>
+        <td>{{p.success_total}}</td>
+        <td>{{p.tested}}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

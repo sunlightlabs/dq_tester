@@ -10,10 +10,23 @@ def add_test_result(program, test_name, test_object, unique_key=None, unique_val
                 #remove possible duplicate
                 for result_type in program['tests']:
                     for t in program['tests'][result_type]:
-                        if t['name'] == test_name and t.has_key(unique_key) and t[unique_key] == unique_value:
+                        if type(unique_key) == type([]):
+                            for k in unique_key:
+                                if t['name'] == test_name and t.has_key(k) and t[k] == unique_value[unique_key.index(k)]:
+                                    continue
+                                else:
+                                    program['tests'][test_object['result']].append(test_object)
+                                    return program
+
                             program['tests'][result_type].remove(t)
                             program['tests'][test_object['result']].append(test_object)
                             return program
+
+                        else:
+                            if t['name'] == test_name and t.has_key(unique_key) and t[unique_key] == unique_value:
+                                program['tests'][result_type].remove(t)
+                                program['tests'][test_object['result']].append(test_object)
+                                return program
            
                 program['tests'][test_object['result']].append(test_object)
         else:

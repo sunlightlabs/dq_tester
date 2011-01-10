@@ -1,0 +1,51 @@
+{% extends "base.html"%}
+{% load humanize %}
+{% block content %}
+
+<h4>Test Results for {{program.title}}</h4>
+
+{% for t in tests %}
+<h5>Test: {{t.0}}</h5>
+    {% if t.0 = 'year over year' %}
+    <table class="results">
+        <thead>
+            <tr><th>Assistance Type</th><th>Fiscal Year</th><th>Obligation / Year Range</th><th>Percent Change</th><th>Result</th></tr> 
+        </thead>
+        <tbody>
+        {% for result in t %}
+            {% if not forloop.first %}
+            <tr>
+                <td>{{result.assistance_type}}</td>
+                <td>{{result.fiscal_year}}</td>
+                <td>{{result.first_year}}: ${{result.first_year_ob|intcomma}} - {{result.second_year}}: ${{result.second_year_ob|intcomma}}</td>
+                <td>{{result.percent_change|floatformat:2}}%</td>
+                <td>{{result.result}}</td>
+        
+            </tr>
+            {% endif %}
+        {% endfor %} 
+        </tbody>
+    </table>
+    {% else %}
+    <table class="results">
+        <thead>
+            <tr><th>Fiscal Year</th><th>Range of Assistance</th><th>Obligation</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+        {% for result in t %}
+            {% if not forloop.first %}
+            <tr>
+                <td>{{result.fiscal_year}}</td>
+                <td>${{result.range_of_assistance_low|floatformat:0|intcomma}} - ${{result.range_of_assistance_high|floatformat:0|intcomma}}</td>
+                <td>${{result.obligation|intcomma}}</td>
+                <td>{{result.result}}</td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+{% endfor %}    
+
+
+{% endblock %}

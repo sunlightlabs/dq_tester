@@ -5,12 +5,20 @@
 <head>
   <link href="/media/styles/main.css" rel="stylesheet" type="text/css" /> 
   <link href="/media/styles/sf_frame.css" rel="stylesheet" type="text/css" /> 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js" type="text/javascript"></script>
+  <script src="/media/scripts/jquery.tablesorter.min.js" type="text/javascript"></script>
 
 </head>
 <body>
 {% include "header.html"%}
+<div class="main">
 {% block content %}
 {% endblock %}
-
+</div
+<script type="text/javascript">
+$(document).ready(function() {
+       $("table.results").tablesorter();
+});
+</script>
 </body>
 </html>

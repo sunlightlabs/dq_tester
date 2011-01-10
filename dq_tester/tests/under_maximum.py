@@ -11,6 +11,7 @@ def under_maximum(db):
                     if o['amount'] < r['high']:
                          test_object = { 'result': 'warn',
                                         'fiscal_year': o['fiscal_year'],
+                                        'assistance_type': o['assistance_type']
                                       }
                          add_test_result(p, 'under_maximum', test_object, 'fiscal_year', o['fiscal_year'])
         db['cfda'].save(p)

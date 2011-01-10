@@ -10,6 +10,7 @@ def under_minimum(db):
                     if o['amount'] < r['low']:
                         test_object = { 'result': 'fail',
                                         'fiscal_year': o['fiscal_year'],
+                                        'assistance_type': o['assistance_type']
                                       }
                         add_test_result(p, 'under_minimum', test_object, 'fiscal_year', o['fiscal_year'])
         db['cfda'].save(p)
