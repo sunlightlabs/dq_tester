@@ -1,0 +1,52 @@
+{% extends "base.html"%}
+{% load humanize %}
+{% block content %}
+<h4>{{title}}</h4>
+<table class="results">
+    <thead>
+    <tr>
+        <th class="nosort">#</th>
+        <th>Program</th>
+        <th>Agency</th>
+        <th>Recovery</th>
+        <th>Number</th>
+        <th>Obligations</th>
+        {% if type = "failed" %}
+        <th>Tests Failed</th>
+        <th>Tests Warned</th>
+        {% endif %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for p in programs %}
+    <tr>
+        <td>{{forloop.counter}}</td>
+        <td class="name"><a href="/program/{{p.number}}">{{p.title}}</a></td>
+        <td>{{p.agency.name}}</td>
+        <td>{{p.recovery}}</td>
+        <td>{{p.number}}</td>
+        <td>
+            {% for o in p.obligations %}
+                {{o.fiscal_year}}: ${{o.amount|intcomma}} ({{o.assistance_type}})<br />
+            {% endfor %}
+        </td>
+        {% if type = "failed" %}
+        <td>{{p.failed_total}}</td>
+        <td>{{p.warned_total}}</td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+{% block tablesort %}
+
+$("table.results").tablesorter({
+        headers: {
+                    0: {
+                            sorter: false
+                    }
+        }
+});
+{% endblock %}

@@ -37,11 +37,11 @@ def year_over_year(db):
 
                         if float(diff) / denom > .5 or float(diff) / denom < -.5:
                             test_object['result'] = 'fail'
+                            if p['recovery']:
+                                test_object['result'] = 'warn'
                         else: 
                             test_object['result'] = 'success'
                         #add data to test object
-                        if p['recovery']:
-                            test_object['result'] = 'warn'
 
                         test_object['fiscal_year'] = o['fiscal_year']
                         test_object['first_year'] = o['fiscal_year']

@@ -77,8 +77,8 @@
     
     table.results {width: 100%; margin: 10px;}
     table.results th { font-weight: bold; } 
-    table.results td {padding: 15px 0px; vertical-align: top; min-width: 150px;}
-    table.results td.name { width: 300px; }
+    table.results td {padding: 15px; vertical-align: top; }
+    table.results td.name {width: 500px; }
     table.results td a {text-decoration: underline;}
 
     span.no_positions {color: #666;}
@@ -151,6 +151,12 @@
 
     /* table sort */
     table.results th { background: url(/media/i/sortArrows.png) no-repeat scroll left 10px transparent; padding-left: 15px; padding-top: 4px; cursor:pointer; }
-
+    table.results th.nosort { background: none; }
     table.results th.headerSortDown { background: url(/media/i/sortArrows_down.png) no-repeat scroll left 10px transparent; }
     table.results th.headerSortUp { background: url(/media/i/sortArrows_up.png) no-repeat scroll left 10px transparent; }
+    
+    table.results tr { margin: 25px 0px; padding: 5px; }
+
+    table tr.fail { background-color: #F8B8B8; border: 1px solid #BB3434; }
+    table tr.warn { background-color: #FAFA90; }
+

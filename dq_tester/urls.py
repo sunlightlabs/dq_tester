@@ -9,6 +9,8 @@ urlpatterns = patterns('',
     url(r'^$', 'cfda.views.index', name='index'),
     url(r'^agency/(?P<cfda_id>\d{2})', 'agency.views.agency' ),
     url(r'^program/(?P<number>\d{2}\.\d{3})', 'cfda.views.cfda' ),
+    url(r'^failed/$', 'agency.views.failed', name='failed'),
+    url(r'^nottested/$', 'agency.views.nottested', name='nottested'),
     # Example:
     # (r'^dq_tester/', include('dq_tester.foo.urls')),
 

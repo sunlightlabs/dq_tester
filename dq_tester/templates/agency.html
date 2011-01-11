@@ -8,7 +8,7 @@
     </thead>
     <tbody>
     {% for p in programs %}
-    <tr>
+    <tr class="{{p.css_class}}">
         <td class="name"><a href="/program/{{p.number}}">{{p.title}}</a></td>
         <td>{{p.number}}</td>
         <td>
